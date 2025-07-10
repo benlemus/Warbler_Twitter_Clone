@@ -116,7 +116,7 @@ def logout():
     # IMPLEMENT THIS
     do_logout()
     flash('Successfully Logged out!', 'success')
-    return redirect('/')
+    return redirect('/login')
 
 
 
