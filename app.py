@@ -154,7 +154,10 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
-    return render_template('users/show.html', user=user, messages=messages)
+    
+    likes = Likes.query.filter_by(user_id=user_id).count()
+
+    return render_template('users/show.html', user=user, messages=messages, likes=likes)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -209,6 +212,18 @@ def stop_following(follow_id):
     db.session.commit()
 
     return redirect(f"/users/{g.user.id}/following")
+
+@app.route('/users/<int:user_id>/likes', methods=['GET', 'POST'])
+def show_likes(user_id):
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    
+    likes = [like.message_id for like in Likes.query.filter_by(user_id=user_id).all()]
+
+    messages = Message.query.filter(Message.id.in_(likes)).order_by(Message.timestamp.desc()).limit(100).all()
+
+    return render_template('users/likes.html', messages=messages, likes=likes)
 
 @app.route('/users/add_like/<int:message_id>', methods=['POST'])
 def message_like(message_id):
