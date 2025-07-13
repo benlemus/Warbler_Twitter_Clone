@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message, Follows
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -210,6 +210,40 @@ def stop_following(follow_id):
 
     return redirect(f"/users/{g.user.id}/following")
 
+@app.route('/users/add_like/<int:message_id>', methods=['POST'])
+def message_like(message_id):
+    user_message = Message.query.get_or_404(message_id)
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect('/')
+    
+    if g.user.id == user_message.user_id:
+        flash('You cannot like your own post', 'warning')
+        return redirect('/') 
+    try:
+        new_like = Likes(user_id=g.user.id, message_id=message_id)
+
+        db.session.add(new_like)
+        db.session.commit()
+
+        return redirect('/')
+    except IntegrityError:
+        flash('Post already liked', 'danger')
+        return redirect('/')
+    
+@app.route('/users/remove_like/<int:message_id>', methods=['POST'])
+def message_remove_like(message_id):
+    user_message = Message.query.get_or_404(message_id)
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect('/')
+
+    g.user.likes.remove(user_message)
+    db.session.commit()
+
+    return redirect('/')
 
 @app.route('/users/profile', methods=["GET", "POST"])
 def profile():
@@ -326,13 +360,9 @@ def homepage():
 
         messages = Message.query.filter(Message.user_id.in_(following)).order_by(Message.timestamp.desc()).limit(100).all()
 
-        # messages = (Message
-        #             .query
-        #             .order_by(Message.timestamp.desc())
-        #             .limit(100)
-        #             .all())
+        likes = [like.message_id for like in Likes.query.filter_by(user_id=g.user.id).all()]
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, likes=likes)
 
     else:
         return render_template('home-anon.html')
