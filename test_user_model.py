@@ -10,6 +10,8 @@ from unittest import TestCase
 
 from models import db, User, Message, Follows
 
+from sqlalchemy.exc import IntegrityError
+
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
 # before we import our app, since that will have already
@@ -86,7 +88,7 @@ class UserModelTestCase(TestCase):
         self.assertIsNotNone(u1)
         self.assertIsNotNone(u2)
 
-        # checks if u1 is following u2 before follow route
+        # checks if user 1 is following user 2 before follow route
         self.assertFalse(u1.is_following(u2))
 
         # makes user 1 follow user 2
@@ -97,10 +99,10 @@ class UserModelTestCase(TestCase):
         u1 = User.query.filter_by(username='testuser1').first()
         u2 = User.query.filter_by(username='testuser2').first()
 
-        # checks if u1 is following u2 after follow route
+        # checks if user 1 is following user 2 after follow route
         self.assertTrue(u1.is_following(u2))
 
-        # makes u1 unfollow u2
+        # makes user 1 unfollow user 2
         stop_following = self.client.post(f'/users/stop-following/{u2.id}', follow_redirects=False)
         self.assertEqual(stop_following.status_code, 302)
 
@@ -108,14 +110,14 @@ class UserModelTestCase(TestCase):
         u1 = User.query.filter_by(username='testuser1').first()
         u2 = User.query.filter_by(username='testuser2').first()
 
-        # checks if u1 is no longer on u2 follow list
+        # checks if user 1 is no longer following user 2
         self.assertFalse(u1.is_following(u2))
 
     
     def test_is_followed_by(self):
         u1, u2 = self.sign_up_users_login(self.client)
 
-        # checks if u1 is following u2 before follow route
+        # checks if user 1 is following user 2 before follow route
         self.assertFalse(u2.is_followed_by(u1))
 
         # makes user 1 follow user 2
@@ -126,12 +128,53 @@ class UserModelTestCase(TestCase):
         u1 = User.query.filter_by(username='testuser1').first()
         u2 = User.query.filter_by(username='testuser2').first()
 
-        # checks if u1 is following u2 after follow route
+        # checks if user 1 is following user 2 after follow route
         self.assertTrue(u2.is_followed_by(u1))
+
+        # makes user 1 unfollow user 2
+        stop_following = self.client.post(f'/users/stop-following/{u2.id}', follow_redirects=False)
+        self.assertEqual(stop_following.status_code, 302)
+
+        # # re-gets user 1 and user 2
+        u1 = User.query.filter_by(username='testuser1').first()
+        u2 = User.query.filter_by(username='testuser2').first()
+
+        # checks if user 2 is no longer followed by user 1
+        self.assertFalse(u2.is_followed_by(u1))
+
+    def test_user_signup(self):
+        plain_password = 'password123'
+
+        # signs up user 1
+        u1_signup = User.signup('testuser1', plain_password, 'test@test.com', '')
+        db.session.commit()
+
+        # makes sure sign up method creates a user
+        self.assertEqual('testuser1', u1_signup.username)
+
+        # gets user 1
+        u1 = User.query.filter_by(username='testuser1').first()
+
+        # makes sure user exists in database
+        self.assertIsNotNone(u1)
+
+        # tests empty username
+        with self.assertRaises(ValueError) as context:
+            User.signup('', plain_password, 'test2@test.com', '')
+        self.assertEqual(str(context.exception), "Username cannot be empty")
+
+        # tests taken username
+        with self.assertRaises(ValueError) as context:
+            User.signup('testuser1', 'differentpassword', 'different@test.com', '')
+        self.assertEqual(str(context.exception), "Username 'testuser1' is already taken")
+
+
 
 
     def sign_up_users_login(self, client):
+        ''' Helper Method to create 2 users and sign in user 1 '''
         plain_password = 'password123'
+
         # signs up user 1
         signup_data1 = {'username': 'testuser1', 'password': plain_password, 'email': 'test@test.com', 'image_url': ''}
         signup1 = client.post('/signup', data=signup_data1, follow_redirects=False)

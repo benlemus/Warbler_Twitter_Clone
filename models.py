@@ -135,7 +135,18 @@ class User(db.Model):
         """Sign up user.
 
         Hashes password and adds user to system.
+
         """
+
+        if not username:
+            raise ValueError("Username cannot be empty")
+        if not email:
+            raise ValueError("Email cannot be empty")
+        if not password:
+            raise ValueError("Password cannot be empty")
+
+        if User.query.filter_by(username=username).first():
+            raise ValueError(f"Username '{username}' is already taken")
 
         hashed_pwd = bcrypt.generate_password_hash(password).decode('UTF-8')
 
