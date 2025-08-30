@@ -83,8 +83,8 @@ class UserModelTestCase(TestCase):
         self.assertEqual(str(u), f"<User #{u.id}: {u.username}, {u.email}>")
 
     def test_is_following(self):
-        '''Does the is_following model function dectect an added follow?'''
-        u1, u2 = self.sign_up_users_login(self.client)
+        '''Does the is_following method in the user class dectect an added follow?'''
+        u1, u2 = self._sign_up_users_login(self.client)
         self.assertIsNotNone(u1)
         self.assertIsNotNone(u2)
 
@@ -115,7 +115,8 @@ class UserModelTestCase(TestCase):
 
     
     def test_is_followed_by(self):
-        u1, u2 = self.sign_up_users_login(self.client)
+        '''Does the is_followed_by method on the user class return true when a user is following another user?'''
+        u1, u2 = self._sign_up_users_login(self.client)
 
         # checks if user 1 is following user 2 before follow route
         self.assertFalse(u2.is_followed_by(u1))
@@ -143,6 +144,7 @@ class UserModelTestCase(TestCase):
         self.assertFalse(u2.is_followed_by(u1))
 
     def test_user_signup(self):
+        '''Does the signup method on the user class sign up a new user?'''
         plain_password = 'password123'
 
         # signs up user 1
@@ -168,27 +170,42 @@ class UserModelTestCase(TestCase):
             User.signup('testuser1', 'differentpassword', 'different@test.com', '')
         self.assertEqual(str(context.exception), "Username 'testuser1' is already taken")
 
+    def test_user_authentication(self):
+        '''Does the authenticate method on the user class return true when a users credentials are correct?'''
+        u1, u2 = self._sign_up_users_login(self.client)
 
+        # authenticates with user 1 username/password
+        auth = User.authenticate('testuser1', 'password123')
 
+        self.assertIsNotNone(auth)
+        self.assertEqual(auth, u1)
+         
+        # tests incorrect username, should return false
+        no_auth = User.authenticate('test', 'password123')
+        self.assertFalse(no_auth)
 
-    def sign_up_users_login(self, client):
+        # tests incorrect password, should return false
+        no_auth = User.authenticate('testuser1', 'pass')
+        self.assertFalse(no_auth)
+
+    def _sign_up_users_login(self, client):
         ''' Helper Method to create 2 users and sign in user 1 '''
         plain_password = 'password123'
 
         # signs up user 1
         signup_data1 = {'username': 'testuser1', 'password': plain_password, 'email': 'test@test.com', 'image_url': ''}
         signup1 = client.post('/signup', data=signup_data1, follow_redirects=False)
-        assert signup1.status_code == 302
+        self.assertEqual(signup1.status_code, 302)
 
         # signs up user 2
         signup_data2 = {'username': 'testuser2', 'password': plain_password, 'email': 'test2@test.com', 'image_url': ''}
         signup2 = client.post('/signup', data=signup_data2, follow_redirects=False)
-        assert signup2.status_code == 302
+        self.assertEqual(signup2.status_code, 302)
 
         # logs in user 1
         login_data = {'username': signup_data1['username'], 'password': plain_password}
         login = client.post('/login', data=login_data, follow_redirects=False)
-        assert login.status_code == 302
+        self.assertEqual(login.status_code, 302)
 
         # tests users exist in db by returning the user objects
         return User.query.filter_by(username=signup_data1['username']).first(), User.query.filter_by(username=signup_data2['username']).first()
