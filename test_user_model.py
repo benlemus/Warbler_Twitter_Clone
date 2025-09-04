@@ -10,8 +10,6 @@ from unittest import TestCase
 
 from models import db, User, Message, Follows
 
-from sqlalchemy.exc import IntegrityError
-
 # BEFORE we import our app, let's set an environmental variable
 # to use a different database for tests (we need to do this
 # before we import our app, since that will have already
@@ -209,3 +207,4 @@ class UserModelTestCase(TestCase):
 
         # tests users exist in db by returning the user objects
         return User.query.filter_by(username=signup_data1['username']).first(), User.query.filter_by(username=signup_data2['username']).first()
+    

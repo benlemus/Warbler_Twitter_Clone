@@ -71,3 +71,45 @@ class MessageViewTestCase(TestCase):
 
             msg = Message.query.one()
             self.assertEqual(msg.text, "Hello")
+
+    def test_message_show(self):
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            # adds/gets message
+            data = {
+                'text': 'testing message'
+            }
+            add_msg = c.post('/messages/new', data=data)
+            msg = Message.query.filter_by(text='testing message').first()
+
+            # hits route to show message
+            show_msg = c.get(f'/messages/{msg.id}')
+            html = show_msg.get_data(as_text=True)
+            
+            self.assertEqual(show_msg.status_code, 200)
+            self.assertIn('testing message', html)
+
+    def test_message_destroy(self):
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess[CURR_USER_KEY] = self.testuser.id
+
+            # adds/gets message
+            data = {
+                'text': 'testing message'
+            }
+            add_msg = c.post('/messages/new', data=data)
+            msg = Message.query.filter_by(text='testing message').first()
+
+            # hits destroy message route, redirects to user page
+            destroy_msg = c.post(f'/messages/{msg.id}/delete', follow_redirects=True)
+            html = destroy_msg.get_data(as_text=True)
+            
+            self.assertIsNone(Message.query.filter_by(text='testing message').first())
+
+            self.assertEqual(destroy_msg.status_code, 200)
+            self.assertNotIn('testing message', html)
+            self.assertIn('testuser', html)
+ 
