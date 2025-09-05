@@ -129,6 +129,14 @@ class User(db.Model):
 
         found_user_list = [user for user in self.following if user == other_user]
         return len(found_user_list) == 1
+    
+    def change_password(self, new_password):
+        if not new_password:
+            raise ValueError("Password cannot be empty")
+        
+        hashed_password = bcrypt.generate_password_hash(new_password).decode('UTF-8')
+
+        self.password = hashed_password
 
     @classmethod
     def signup(cls, username, email, password, image_url):

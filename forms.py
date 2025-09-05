@@ -35,4 +35,11 @@ class UserEditForm(FlaskForm):
 
     password = PasswordField('Password')
 
+class UserChangePasswordForm(FlaskForm):
+    ''' Form for changing password'''
+
+    cur_password = PasswordField('Current Password')
+    new_password = PasswordField('New Password')
+    confirm_password = PasswordField('Confirm Password')
+
 
