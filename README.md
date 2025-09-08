@@ -1,0 +1,1 @@
+This is a copy of Twitter to test funcitonality of login auth, logging out, protected pages, database queries for users, likes and messages. There is also functionality to create 'messages' or posts for users to like.
