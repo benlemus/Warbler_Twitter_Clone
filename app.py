@@ -39,7 +39,6 @@ def add_user_to_g():
     else:
         g.user = None
 
-
 def do_login(user):
     """Log in user."""
 
@@ -290,7 +289,7 @@ def profile():
         flash('Incorrect username or password', 'danger')
         return redirect(url_for('homepage'))
 
-    return render_template('users/edit.html', form=form)
+    return render_template('users/edit.html', form=form, user_id=cur_u.id)
 
 @app.route('/users/profile/password-change', methods=['GET','POST'])
 def change_password():
